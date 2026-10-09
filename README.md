@@ -72,8 +72,11 @@ O projeto **Cuca Bot** nasceu da nossa união entre eletrónica, programação e
 
 ### 🛠️ 1. O Processo de Desenvolvimento e Montagem
 Tudo começou na bancada de testes, soldando os componentes, ajustando a eletrónica e estruturando a carcaça do robô até o sistema dual ESP32 começar a ganhar forma[cite: 2].
-> ![Etapa 1](fotos/etapa(1).jpeg)[cite: 2]
-> ![Etapa 2](fotos/etapa%20(2).jpeg)[cite: 2]
+
+<p align="center">
+  <img src="fotos/etapa(1).jpeg" width="350" alt="Etapa 1">
+  <img src="fotos/etapa%20(2).jpeg" width="350" alt="Etapa 2">
+</p>
 
 ### 🥉 2. Conquista na Olimpíada Brasileira de Robótica (OBR)
 Levamos a Cuca para competir na OBR e o nosso esforço foi recompensado: conquistamos um fantástico **3º lugar**, provando a eficiência da nossa lógica e construção robótica[cite: 2]!
