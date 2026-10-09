@@ -30,7 +30,7 @@ Responsável pelo processamento e transmissão do áudio.
 
 ## 🔌 Pinagem e Conexões
 
-### 1. ESP32 Mestre
+### 1. ESP32 Mestre (Versão Principal — Sensor de Cor)
 
 **Sensor de Cor — TCS230/TCS3200**
 
@@ -51,7 +51,20 @@ Responsável pelo processamento e transmissão do áudio.
 | IN3 | GPIO 12 |
 | IN4 | GPIO 5 |
 
-### 2. Comunicação UART — Mestre e Escravo
+### 2. Pinagem das Versões Alternativas (Sensor Ultrassônico)
+
+Nas versões adaptadas para feiras e apresentações (como a **Expoema** e a **UEMA**, localizadas na pasta `adaptacoes/`), utilizamos um **Sensor Ultrassônico (HC-SR04)** no Mestre para garantir maior estabilidade contra a variação de luz do ambiente:
+
+- **Sensor Ultrassônico - HC-SR04:**
+  - `Trig` -> GPIO 5
+  - `Echo` -> GPIO 18
+- **Driver do Motor de Passo - ULN2003:**
+  - `IN1` -> GPIO 13
+  - `IN2` -> GPIO 4
+  - `IN3` -> GPIO 12
+  - `IN4` -> GPIO 5
+
+### 3. Comunicação UART — Mestre e Escravo
 
 A comunicação entre os dois ESP32 utiliza a interface serial UART2.
 
