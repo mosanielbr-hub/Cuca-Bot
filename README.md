@@ -9,7 +9,7 @@ Projeto robótico interativo baseado em uma arquitetura Mestre-Escravo com dois 
 O sistema é dividido em dois blocos de processamento independentes para garantir alta performance e evitar atrasos na reprodução de áudio:
 
 - **ESP32 Mestre:**
-  - Leitura do sensor de cor (TCS230 / TCS320).
+  - Leitura do sensor de cor (TCS230 / TCS320) ou sensor ultrassónico (dependendo da versão).
   - Controle do motor de passo (28BYJ-48 com driver ULN2003).
   - Envio de comandos de sincronização via UART2 (`TOCAR:X`).
   - Gestão de atualizações remotas via Wi-Fi (ArduinoOTA).
@@ -55,7 +55,6 @@ O sistema é dividido em dois blocos de processamento independentes para garanti
 
 2. **Dispositivo de Áudio:**
    - O firmware é compatível com caixas de som Bluetooth padrão (A2DP Sink).
-   - *Nota:* Fones de ouvido TWS (como G9S) podem não manter a conexão devido às exigências de gestão de energia do perfil A2DP Source.
 
 ---
 
@@ -64,6 +63,27 @@ O sistema é dividido em dois blocos de processamento independentes para garanti
 - [ESP32-A2DP](https://github.com/pschatzmann/ESP32-A2DP) (A2DP Source para transmissão de áudio)
 - `Stepper` (Controle de motores de passo)
 - `ArduinoOTA` / `WiFi` (Atualização de firmware via rede)
+
+---
+
+## 📖 Nossa Trajetória com a Cuca
+
+O projeto **Cuca Bot** nasceu da nossa união entre eletrónica, programação e cultura popular. Ao longo do tempo, o robô passou por várias fases de desenvolvimento, testes e grandes conquistas!
+
+### 🛠️ 1. O Processo de Desenvolvimento e Montagem
+Tudo começou na bancada de testes, soldando os componentes, ajustando a eletrónica e estruturando a carcaça do robô até o sistema dual ESP32 começar a ganhar forma.
+> ![Processo 1](fotos/processo%20(1).jpeg)
+> ![Processo 2](fotos/processo%20(2).jpeg)
+> ![Processo 3](fotos/processo%20(3).jpeg)
+
+### 🥉 2. Conquista na Olimpíada Brasileira de Robótica (OBR)
+Levamos a Cuca para competir na OBR e o nosso esforço foi recompensado: conquistamos um fantástico **3º lugar**, provando a eficiência da nossa lógica e construção robótica!
+> ![OBR 1](fotos/obr(1).jpeg)
+> ![OBR 2](fotos/obr(2).jpeg)
+
+### 🎪 3. Destaque e Abertura na Expoema (Estande do IEMA)
+Graças ao sucesso do projeto, fomos convidados especiais para participar da **abertura da Expoema no estande do IEMA**, onde a Cuca interagiu com o público e representou com muito orgulho o nosso trabalho.
+> ![Expoema](fotos/expoema.jpg)
 
 ---
 
