@@ -75,7 +75,7 @@ Tudo começou na bancada de testes, soldando os componentes, ajustando a eletró
 
 <p align="center">
   <img src="fotos/etapa(1).jpeg" width="350" alt="Etapa 1">
-  <img src="fotos/etapa%20(2).jpeg" width="350" alt="Etapa 2">
+  <img src="fotos/etapa%20(5).jpeg" width="350" alt="Etapa 2">
 </p>
 
 ### 🥉 2. Conquista na Olimpíada Brasileira de Robótica (OBR)
