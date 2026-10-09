@@ -71,19 +71,18 @@ O sistema é dividido em dois blocos de processamento independentes para garanti
 O projeto **Cuca Bot** nasceu da nossa união entre eletrónica, programação e cultura popular. Ao longo do tempo, o robô passou por várias fases de desenvolvimento, testes e grandes conquistas!
 
 ### 🛠️ 1. O Processo de Desenvolvimento e Montagem
-Tudo começou na bancada de testes, soldando os componentes, ajustando a eletrónica e estruturando a carcaça do robô até o sistema dual ESP32 começar a ganhar forma.
-> ![Processo 1](fotos/processo%20(1).jpeg)
-> ![Processo 2](fotos/processo%20(2).jpeg)
-> ![Processo 3](fotos/processo%20(3).jpeg)
+Tudo começou na bancada de testes, soldando os componentes, ajustando a eletrónica e estruturando a carcaça do robô até o sistema dual ESP32 começar a ganhar forma[cite: 2].
+> ![Etapa 1](fotos/etapa(1).jpeg)[cite: 2]
+> ![Etapa 2](fotos/etapa%20(2).jpeg)[cite: 2]
 
 ### 🥉 2. Conquista na Olimpíada Brasileira de Robótica (OBR)
-Levamos a Cuca para competir na OBR e o nosso esforço foi recompensado: conquistamos um fantástico **3º lugar**, provando a eficiência da nossa lógica e construção robótica!
-> ![OBR 1](fotos/obr(1).jpeg)
-> ![OBR 2](fotos/obr(2).jpeg)
+Levamos a Cuca para competir na OBR e o nosso esforço foi recompensado: conquistamos um fantástico **3º lugar**, provando a eficiência da nossa lógica e construção robótica[cite: 2]!
+> ![OBR 1](fotos/obr(1).jpeg)[cite: 2]
+> ![OBR 2](fotos/obr(2).jpeg)[cite: 2]
 
 ### 🎪 3. Destaque e Abertura na Expoema (Estande do IEMA)
-Graças ao sucesso do projeto, fomos convidados especiais para participar da **abertura da Expoema no estande do IEMA**, onde a Cuca interagiu com o público e representou com muito orgulho o nosso trabalho.
-> ![Expoema](fotos/expoema.jpg)
+Graças ao sucesso do projeto, fomos convidados especiais para participar da **abertura da Expoema no estande do IEMA**, onde a Cuca interagiu com o público e representou com muito orgulho o nosso trabalho[cite: 2].
+> ![Expoema](fotos/expoema.jpg)[cite: 2]
 
 ---
 
