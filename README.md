@@ -138,6 +138,4 @@ Projeto desenvolvido por:
 
 ## 📄 Licença
 
-Este projeto está licenciado sob a **Licença MIT**.
-
-Consulte o arquivo [LICENSE](LICENSE) para mais informações.
+Este projeto é proprietário e confidencial. Desenvolvido por **Ana Beatriz** e **Mosaniel**. Todos os direitos reservados. É proibida a utilização, cópia ou distribuição sem autorização expressa.
