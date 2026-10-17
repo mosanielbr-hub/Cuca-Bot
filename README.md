@@ -40,12 +40,14 @@ O ESP32 é responsável por enviar sinais digitais às pontes H, determinando o 
 
 **Componentes da base:**
 
+
 | Componente | Quantidade | Função |
 |---|---|---|
 | Motores DC | 8 | Movimentação da base |
 | Módulos de ponte H | 2 | Acionamento e controle dos motores |
 | ESP32 | 1 | Processamento dos sensores e comandos de movimento |
 | Sensor TCS230/TCS3200 | 1 | Identificação da cor que inicia os movimentos |
+
 
 Os motores são comandados por quatro canais de acionamento, identificados no código como:
 
