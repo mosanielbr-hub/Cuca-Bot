@@ -22,6 +22,7 @@ Responsável pelo processamento dos sensores e controle dos movimentos do robô.
 Responsável pelo processamento e transmissão do áudio.
 
 - Recepção de comandos via UART2.
+- Áudios WAV convertidos para arrays c++
 - Leitura do buffer de áudio armazenado na memória Flash (`PROGMEM`).
 - Transmissão de áudio estéreo em tempo real via **Bluetooth A2DP** para caixas de som externas.
 - Envio do sinal de conclusão (`FIM`) para o ESP32 Mestre.
