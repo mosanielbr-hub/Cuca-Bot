@@ -1,213 +1,240 @@
 # 🤖 Cuca Bot — Dual ESP32 Interactive System
 
-Projeto robótico interativo baseado em uma arquitetura **Mestre–Escravo**, utilizando dois microcontroladores **ESP32**, comunicação serial UART, detecção de cores por sensor óptico, controle de motores e transmissão de áudio via Bluetooth A2DP.
+Projeto robótico interativo baseado em uma arquitetura **Mestre–Escravo com dois ESP32**, comunicação UART, detecção de cores, movimentação da base e reprodução de áudio por **Bluetooth A2DP**.
 
-O projeto também possui uma **versão de locomoção utilizada na Olimpíada Brasileira de Robótica (OBR)**, equipada com **8 motores DC e 2 módulos de ponte H**, permitindo a movimentação da base do robô.
+A Cuca Bot também participou da **Olimpíada Brasileira de Robótica (OBR)** com uma base quadrada de madeira, **8 motores DC** (quatro de cada lado) e **2 pontes H L298N**. A versão integrada documentada abaixo reúne essa lógica de locomoção, o motor de passo **28BYJ-48** e a comunicação com o ESP32 de áudio. **Os firmwares da OBR e da versão integrada são diferentes**; a nova pinagem não deve ser aplicada a códigos antigos sem conferir as conexões.
 
 ---
 
 ## 📌 Arquitetura do Sistema
 
-O sistema principal é dividido em dois blocos de processamento independentes para distribuir as tarefas e minimizar possíveis atrasos na reprodução de áudio.
+### 🧠 ESP32 Mestre — Sensores e movimentos
 
-### 🧠 ESP32 Mestre
+No código integrado, o mestre é responsável por:
 
-Responsável pelo processamento dos sensores e controle dos movimentos do robô.
+- Ler o sensor óptico **TCS230/TCS3200** e confirmar duas vezes a detecção da cor verde.
+- Acionar os **8 motores DC**, agrupados pelos quatro canais de duas pontes H L298N.
+- Acionar o motor de passo **28BYJ-48**, por meio do driver **ULN2003**.
+- Enviar `TOCAR:1` até `TOCAR:14` ao ESP32 Escravo via **UART2, 115200 baud**.
+- Receber `FIM` do escravo e aguardar a retirada do objeto verde antes de avançar para a próxima fala.
 
-- Leitura do sensor de cor **TCS230/TCS3200** ou sensor ultrassônico, dependendo da versão.
-- Controle do motor de passo **28BYJ-48**, utilizando o driver **ULN2003**.
-- Controle da base motorizada com **8 motores DC e 2 pontes H**, na versão OBR.
-- Envio de comandos de sincronização via UART (`TOCAR:X`), nas versões com áudio.
-- Gerenciamento de atualizações remotas via Wi-Fi (**ArduinoOTA**), nas versões compatíveis.
+> **OTA no Mestre:** o firmware integrado apresentado nesta versão não contém `WiFi` nem `ArduinoOTA`. Outras versões do projeto possuem suporte a atualização remota.
 
-### 🔊 ESP32 Escravo
+### 🔊 ESP32 Escravo — Áudio
 
-Responsável pelo processamento e transmissão do áudio.
+O escravo concentra a reprodução das falas para não carregar o firmware do mestre com os grandes arrays de áudio:
 
-- Recepção de comandos via UART.
-- Áudios WAV convertidos para arrays C++.
-- Leitura dos dados de áudio armazenados na memória Flash (`PROGMEM`).
-- Transmissão de áudio estéreo em tempo real via **Bluetooth A2DP** para caixas de som externas.
-- Envio do sinal de conclusão (`FIM`) para o ESP32 Mestre.
+- Recebe os comandos `TOCAR:X` pela `Serial2` (UART, **115200 baud**).
+- Utiliza áudio WAV previamente convertido para um array C++ (`audios_unificados`, no arquivo `audio.h`), armazenado em Flash (`PROGMEM`).
+- Seleciona um trecho pela minutagem definida em `listaTrechos` (14 falas).
+- Lê amostras de áudio de **8 bits / 8 kHz** e as converte para a saída estéreo de **16 bits / 44,1 kHz** usada na transmissão **Bluetooth A2DP**.
+- Envia `FIM` ao mestre após concluir o trecho (ou imediatamente se a caixa Bluetooth estiver desconectada quando receber o comando).
+- Possui **Wi-Fi e ArduinoOTA** no código apresentado para o escravo.
 
-### 🚗 Sistema de Locomoção — Versão OBR
+A reprodução A2DP exige um **ESP32 com Bluetooth Classic**; o ESP32-S3 não suporta esse perfil da mesma forma que o ESP32 clássico.
 
-A versão utilizada na **Olimpíada Brasileira de Robótica (OBR)** possui uma base motorizada composta por **8 motores DC**, acionados por **2 módulos de ponte H**.
+### 🔄 Fluxo de interação da versão integrada
 
-Essa configuração permite que a Cuca execute movimentos de deslocamento, recuo e rotação, proporcionando maior interação durante as apresentações.
+```text
+Objeto verde detectado
+         |
+         v
+ESP32 Mestre confirma duas leituras
+         |
+         +---- UART: "TOCAR:X" ----> ESP32 Escravo
+         |                             |
+         v                             v
+Movimentos da base (8 DC)      Áudio via Bluetooth A2DP
+         |                             |
+         v                             |
+Motor de passo (+100 / -100)          |
+         |                             |
+         +<------- UART: "FIM" --------+
+         |
+         v
+Aguarda retirar o objeto verde
+         |
+         v
+Próxima fala, até completar 14
+```
 
-O ESP32 é responsável por enviar sinais digitais às pontes H, determinando o sentido de rotação dos grupos de motores.
+O mestre **envia o comando antes de iniciar os movimentos**, mantém os movimentos com as durações programadas e depois espera `FIM`. O código possui **timeout de 20 segundos na etapa de espera**, contados **após** os movimentos; caso expire, ele prossegue sem confirmação de áudio. O motor de passo executa **um vai e vem por ação**, não durante toda a reprodução. Na ação 13, os motores DC ficam parados, mas o motor de passo ainda executa esse vai e vem no firmware atual.
 
-**Componentes da base:**
+### 🚗 Base de locomoção — Versão OBR
 
+A base original era **quadrada, de madeira e pesava aproximadamente 3 kg**, com **oito motores TT amarelos**, distribuídos em quatro motores por lado, e **duas pontes H L298N**. Cada L298N possui dois canais; o código controla quatro grupos: traseira esquerda, dianteira esquerda, traseira direita e dianteira direita.
 
 | Componente | Quantidade | Função |
-|---|---|---|
-| Motores DC | 8 | Movimentação da base |
-| Módulos de ponte H | 2 | Acionamento e controle dos motores |
-| ESP32 | 1 | Processamento dos sensores e comandos de movimento |
-| Sensor TCS230/TCS3200 | 1 | Identificação da cor que inicia os movimentos |
+|---|---:|---|
+| Motores DC TT amarelos | 8 | Locomoção da base |
+| Módulos L298N | 2 | Controle dos quatro grupos de motores |
+| ESP32 de controle | 1 | Detecção de cor e acionamento dos motores |
+| Sensor TCS230/TCS3200 | 1 | Gatilho das sequências de movimento |
+| Bateria utilizada na base histórica | 1 (12 V) | Alimentação do sistema, conforme a montagem original |
 
-
-Os motores são comandados por quatro canais de acionamento, identificados no código como:
-
-- Traseira esquerda.
-- Dianteira esquerda.
-- Traseira direita.
-- Dianteira direita.
-
-O acionamento desses grupos permite executar movimentos para frente, para trás e giros para ambos os lados.
+> **Atenção:** a alimentação da base histórica era feita com uma bateria de 12 V, mas muitos motores TT amarelos são especificados para **3–6 V**. Não se deve aplicar 12 V diretamente a esses motores sem verificar a tensão nominal de seu modelo e utilizar redução de tensão apropriada. Houve desgaste e danos mecânicos nos motores da montagem original; esta informação não comprova, por si só, a causa das falhas.
 
 ---
 
 ## 🔌 Pinagem e Conexões
 
-### 1. ESP32 Mestre (Versão Principal — Sensor de Cor)
+### 1. ESP32 Mestre — Versão integrada atual
 
-**Sensor de Cor — TCS230/TCS3200**
+As tabelas abaixo seguem o **último código do mestre compartilhado**, com UART em 16/17 e motor de passo transferido para 5/15/22/23. Todos os GPIOs citados nesta seção pertencem ao **mestre**.
 
-| Pino do sensor | GPIO do ESP32 |
+**Sensor de cor — TCS230/TCS3200**
+
+| Pino do sensor | GPIO do ESP32 Mestre |
 |---|---|
-| S0 | GPIO 25 |
-| S1 | GPIO 26 |
-| S2 | GPIO 27 |
-| S3 | GPIO 14 |
-| OUT | GPIO 35 |
+| S0 | 25 |
+| S1 | 26 |
+| S2 | 18 |
+| S3 | 19 |
+| OUT | 35 (somente entrada) |
 
-**Driver do Motor de Passo — ULN2003**
+**Ponte H 1 — Lado esquerdo (L298N)**
 
-| Pino do driver | GPIO do ESP32 |
-|---|---|
-| IN1 | GPIO 13 |
-| IN2 | GPIO 4 |
-| IN3 | GPIO 12 |
-| IN4 | GPIO 5 |
+| Entrada L298N | Constante no código | GPIO do Mestre | Grupo |
+|---|---|---:|---|
+| IN1 | `IN1` | 13 | Traseira esquerda |
+| IN2 | `IN2` | 12 | Traseira esquerda |
+| IN3 | `IN3` | 14 | Dianteira esquerda |
+| IN4 | `IN4` | 27 | Dianteira esquerda |
 
-### 2. Pinagem da Base Motorizada — Versão OBR
+**Ponte H 2 — Lado direito (L298N)**
 
-Na versão utilizada na OBR, o ESP32 controla **8 motores DC por meio de duas pontes H**, sendo uma responsável pelos grupos do lado esquerdo e outra pelos grupos do lado direito.
+| Entrada L298N | Constante no código | GPIO do Mestre | Grupo |
+|---|---|---:|---|
+| IN1 | `IN5` | 33 | Traseira direita |
+| IN2 | `IN6` | 32 | Traseira direita |
+| IN3 | `IN7` | 21 | Dianteira direita |
+| IN4 | `IN8` | 4 | Dianteira direita |
 
-**Ponte H 1 — Lado Esquerdo**
+O programa aciona **quatro canais de ponte H**. Como são oito motores físicos, a distribuição de **dois motores por canal** precisa ser confirmada na fiação real; o código, sozinho, não especifica como cada par de motores está conectado. Os pinos **ENA/ENB** das L298N também não são controlados por este firmware, de modo que a configuração dos jumpers/habilitação deve ser verificada na montagem.
 
-| Pino da ponte H | GPIO do ESP32 | Função |
-|---|---|---|
-| IN1 | GPIO 13 | Traseira esquerda |
-| IN2 | GPIO 12 | Traseira esquerda |
-| IN3 | GPIO 14 | Dianteira esquerda |
-| IN4 | GPIO 27 | Dianteira esquerda |
+**Motor de passo — ULN2003 + 28BYJ-48**
 
-**Ponte H 2 — Lado Direito**
+| Entrada ULN2003 | GPIO do ESP32 Mestre |
+|---|---:|
+| IN1 | 5 |
+| IN2 | 15 |
+| IN3 | 22 |
+| IN4 | 23 |
 
-| Pino da ponte H | GPIO do ESP32 | Função |
-|---|---|---|
-| IN1 (IN5 no código) | GPIO 33 | Traseira direita |
-| IN2 (IN6 no código) | GPIO 32 | Traseira direita |
-| IN3 (IN7 no código) | GPIO 21 | Dianteira direita |
-| IN4 (IN8 no código) | GPIO 4 | Dianteira direita |
+Configuração no código:
 
-**Sensor de Cor — TCS230/TCS3200 (Versão OBR)**
+```cpp
+const int passosPorVolta = 2048;
+const int passosMovimento = 100;
+meuMotorPasso.setSpeed(17);
+```
 
-| Pino do sensor | GPIO do ESP32 |
-|---|---|
-| S0 | GPIO 25 |
-| S1 | GPIO 26 |
-| S2 | GPIO 18 |
-| S3 | GPIO 19 |
-| OUT | GPIO 35 |
+Após cada ação, o motor gira **100 passos em um sentido e 100 passos no sentido oposto**; depois suas bobinas são desligadas.
 
-**Observação:** esta pinagem corresponde ao código da base utilizado na OBR. Ela é diferente da pinagem do sistema Mestre–Escravo com motor de passo, portanto as duas configurações não devem ser utilizadas simultaneamente sem reorganizar as conexões.
+> **Cuidados de boot:** os GPIOs **5, 12 e 15** são pinos de *strapping* em modelos clássicos de ESP32. Módulos externos que alterem seus níveis durante a inicialização podem impedir o boot. Teste com ULN2003 e L298N conectados, antes de habilitar a alimentação dos motores.
 
-### 3. Funcionamento dos Motores DC
+### 2. UART — Conexão entre os dois ESP32
 
-A movimentação da base é realizada por funções específicas implementadas no firmware do ESP32.
+A versão integrada usa **UART2 (`HardwareSerial(2)` / `Serial2`) em ambos os ESP32**, com **115200 baud, 8N1**.
 
-| Função | Descrição |
-|---|---|
-| `moverFrente()` | Aciona os motores para deslocar a Cuca para frente |
-| `moverTras()` | Inverte o sentido dos motores para deslocamento para trás |
-| `girarEsquerda()` | Aciona os lados em sentidos opostos para girar à esquerda |
-| `girarDireita()` | Aciona os lados em sentidos opostos para girar à direita |
-| `pararMotores()` | Desativa os sinais de acionamento dos motores |
-
-O firmware utilizado na OBR possui uma sequência de **14 ações**, executadas conforme a identificação da cor verde pelo sensor TCS230/TCS3200.
-
-Para evitar acionamentos indevidos, o sistema implementa uma **verificação dupla da cor verde**, com intervalo de confirmação de 60 milissegundos.
-
-Após executar cada ação, o ESP32 aguarda a retirada do objeto verde antes de permitir uma nova movimentação.
-
-Algumas ações utilizam movimentos alternados entre frente e trás, enquanto outras realizam giros para esquerda e direita durante intervalos definidos no código.
-
-O sistema encerra a execução após completar as 14 ações programadas.
-
-### 4. Pinagem das Versões Alternativas (Sensor Ultrassônico)
-
-Nas versões adaptadas para feiras e apresentações, como a **Expoema** e a **UEMA**, localizadas na pasta `adaptacoes/`, utilizamos um **sensor ultrassônico HC-SR04** no Mestre para garantir maior estabilidade contra a variação de luz do ambiente.
-
-**Sensor Ultrassônico — HC-SR04**
-
-- `Trig` → GPIO 5
-- `Echo` → GPIO 18
-
-**Driver do Motor de Passo — ULN2003**
-
-- `IN1` → GPIO 13
-- `IN2` → GPIO 4
-- `IN3` → GPIO 12
-- `IN4` → GPIO 5
-
-### 5. Comunicação UART — Mestre e Escravo
-
-A comunicação entre os dois ESP32 utiliza uma interface serial UART.
-
-| ESP32 Mestre | Direção | ESP32 Escravo |
+| ESP32 Mestre | Ligação | ESP32 Escravo |
 |---|:---:|---|
-| GPIO 17 (TX2) | → | GPIO 16 (RX2) |
-| GPIO 16 (RX2) | ← | GPIO 17 (TX2) |
+| GPIO 17 — **TX2** | → | GPIO 16 — **RX2** |
+| GPIO 16 — **RX2** | ← | GPIO 17 — **TX2** |
 | GND | ↔ | GND |
 
-**Observação:** ambos os microcontroladores devem compartilhar uma referência comum de GND para garantir a comunicação serial.
+```cpp
+// ESP32 Mestre
+HardwareSerial SerialAudio(2);
+SerialAudio.begin(115200, SERIAL_8N1, 16, 17);
+
+// ESP32 Escravo
+Serial2.begin(115200, SERIAL_8N1, 16, 17);
+```
+
+**TX liga em RX; RX liga em TX.** Os dois módulos devem compartilhar **GND**. A pinagem presume placas ESP32 clássicas nas quais os GPIOs 16/17 estejam disponíveis (algumas placas com PSRAM podem reservá-los).
+
+**Protocolo serial:**
+
+| Mensagem | Origem | Destino | Finalidade |
+|---|---|---|---|
+| `TOCAR:1` … `TOCAR:14` | Mestre | Escravo | Iniciar a fala indicada |
+| `FIM` | Escravo | Mestre | Informar o encerramento da fala |
+
+### 3. Sequência dos motores DC
+
+| Função | Comportamento |
+|---|---|
+| `moverFrente()` | Aciona os grupos para avançar |
+| `moverTras()` | Aciona os grupos no sentido de recuo |
+| `girarEsquerda()` | Comanda lados em sentidos opostos para virar à esquerda |
+| `girarDireita()` | Comanda lados em sentidos opostos para virar à direita |
+| `pararMotores()` | Coloca todas as entradas das pontes H em LOW |
+
+O sensor realiza **duas verificações do verde**, separadas por **60 ms**. O código usa `pulseIn(..., LOW, 20000)` e considera verde válido quando `g > 15`, `g < r`, `g < b` e `g < 200`. Após executar cada ação, aguarda a retirada do objeto verde (também com dupla confirmação) para evitar repetições involuntárias.
+
+**Movimentações específicas nas 14 ações:**
+
+| Ação | Movimento programado para a base DC |
+|---|---|
+| 3 | Alterna frente/trás, 200 ms por comando, por cerca de 3 s |
+| 4 | Avança por 3 s e alterna giros de 150 ms por cerca de 3 s |
+| 6 | Alterna giros de 600 ms por cerca de 4 s |
+| 7 | Alterna giros de 250 ms por cerca de 4 s |
+| 13 | Base parada |
+| Demais ações | Frente 150 ms, trás 150 ms, e para |
+
+As ações de movimento são **bloqueantes** (uso de `delay()`), e a sequência encerra após a 14ª fala.
+
+### 4. Versões anteriores e adaptações
+
+**Versão da OBR (firmware autônomo original):** já utilizava as mesmas entradas das duas pontes H e a mesma pinagem TCS3200 da base mostradas acima, mas não incluía, naquele código, comunicação UART, reprodução de áudio por ESP32 Escravo ou OTA. A versão integrada adicionou esses subsistemas posteriormente.
+
+**Versões antigas com ULN2003:** o README anterior registrava o motor de passo nos GPIOs **13, 4, 12 e 5**, com o sensor TCS3200 em **25, 26, 27, 14 e 35**. Essa pinagem é histórica e **conflita com as pontes H da base**; não deve ser usada com o firmware integrado atual.
+
+**Adaptações com HC-SR04 (`adaptacoes/`):** alguns firmwares de apresentações utilizam o sensor ultrassônico em vez do sensor de cor. O README antigo registrava `Trig → GPIO 5` e `Echo → GPIO 18`. Esses mapeamentos são específicos das versões antigas e **não devem ser combinados automaticamente** com a versão integrada, em que o GPIO 5 é usado pelo motor de passo. Verifique sempre o código da adaptação antes da montagem.
 
 ---
 
 ## 🛠️ Requisitos de Hardware e Alimentação
 
-### 1. Alimentação
+### 1. ESP32, UART e áudio
 
-- Recomenda-se utilizar uma fonte externa de **5 V / 2 A** para alimentar o driver do motor de passo e o ESP32 Escravo, desde que sua capacidade seja suficiente para o consumo total desses componentes.
-- Adicionar um capacitor eletrolítico de **470 µF a 1000 µF** próximo à alimentação do ESP32 Escravo para ajudar a mitigar quedas momentâneas de tensão causadas pelo consumo do rádio Bluetooth e reduzir possíveis *brownouts*.
-- Garantir que todos os componentes estejam conectados corretamente e recebam as tensões adequadas.
+- Alimente cada ESP32 com tensão adequada à respectiva placa e use **GND comum** para a comunicação UART.
+- No código do escravo, a reprodução exige uma caixa Bluetooth compatível com **A2DP Sink**. O nome do dispositivo é definido em `nomeCaixinhaBT`.
+- A versão do escravo possui Wi-Fi e `ArduinoOTA`. Configure as credenciais de forma segura; **não publique senhas reais no repositório**.
+- Um capacitor de desacoplamento/reserva de **470 µF a 1000 µF** próximo à alimentação do escravo pode ajudar em picos de corrente, sem substituir uma fonte devidamente dimensionada.
+- O motor 28BYJ-48 deve receber alimentação apropriada **pelo ULN2003**, não pelos GPIOs do ESP32.
 
-### 2. Alimentação dos 8 Motores DC
+### 2. Motores DC e bateria
 
-A base motorizada utilizada na OBR necessita de alimentação dimensionada para os **8 motores DC** e os **2 módulos de ponte H**.
+A base histórica utilizou **uma bateria de 12 V** e **duas pontes H L298N**. Para remontagem ou atualização:
 
-Recomendações:
+- Verifique a **tensão nominal dos motores** antes de ligar a bateria; motores TT amarelos comuns não devem receber 12 V diretamente quando sua especificação é 3–6 V.
+- Se usar bateria de 12 V com motores de menor tensão, empregue conversão DC-DC dimensionada para a corrente dos motores.
+- Cada canal da L298N deve suportar a **soma das correntes** dos motores conectados, inclusive na partida e em travamento; respeite também os limites térmicos do módulo.
+- A L298N apresenta queda de tensão e dissipação de calor: considere isso ao dimensionar a alimentação.
+- Não conecte motores diretamente aos GPIOs do ESP32.
+- Para suportar peso e impactos, evite transferir todo o esforço lateral das rodas aos eixos dos motores; considere mancais/rolamentos e fixação reforçada.
+- Teste primeiro com a base suspensa, verificando sentido de giro, corrente e aquecimento antes de colocá-la no chão.
 
-- Utilizar uma fonte ou bateria compatível com a tensão nominal dos motores.
-- Dimensionar cada ponte H considerando a corrente dos motores conectados, especialmente durante a partida ou travamento.
-- Garantir que os motores sejam alimentados pelos drivers, e não diretamente pelos GPIOs do ESP32.
-- Compartilhar uma referência comum de GND entre o ESP32 e os módulos de ponte H.
-- Utilizar uma alimentação estável para evitar quedas de tensão e reinicializações inesperadas do microcontrolador.
+### 3. Dispositivo de áudio
 
-**Importante:** a capacidade necessária da alimentação dos motores depende das especificações dos motores DC e dos módulos de ponte H utilizados.
-
-### 3. Dispositivo de Áudio
-
-O firmware das versões com Bluetooth foi projetado para transmitir áudio a caixas de som compatíveis com o perfil **A2DP Sink**.
+O firmware do escravo transmite áudio por **Bluetooth A2DP** para uma caixa compatível. Os áudios ficam incorporados ao firmware em arrays C++, sem necessidade de cartão SD nessa implementação.
 
 ---
 
 ## 💻 Bibliotecas Utilizadas
 
-| Biblioteca | Finalidade |
+| Biblioteca / recurso | Aplicação |
 |---|---|
-| [ESP32-A2DP](https://github.com/pschatzmann/ESP32-A2DP) | Transmissão de áudio Bluetooth A2DP |
-| `Stepper` | Controle do motor de passo |
-| `ArduinoOTA` | Atualização remota do firmware |
-| `WiFi` | Conectividade com a rede sem fio |
-| `Arduino.h` | Controle dos GPIOs, leitura de sensores e acionamento das pontes H |
-
-As bibliotecas utilizadas dependem da versão do firmware. O código da base motorizada da OBR realiza o controle dos motores DC diretamente pelos GPIOs do ESP32.
+| [`ESP32-A2DP`](https://github.com/pschatzmann/ESP32-A2DP) | Transmissão de áudio do escravo por Bluetooth |
+| `Stepper` | Controle do 28BYJ-48 pelo mestre |
+| `HardwareSerial` / `Serial2` | UART entre mestre e escravo |
+| `ArduinoOTA` | Atualização remota no firmware do escravo e em algumas versões históricas |
+| `WiFi` | Conexão de rede para OTA onde implementada |
+| `Arduino.h` | GPIOs, sensor de cor e lógica das pontes H |
+| `audio.h` | Array C++ contendo as amostras de áudio |
 
 ---
 
